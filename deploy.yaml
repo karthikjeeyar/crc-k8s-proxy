@@ -99,7 +99,7 @@ objects:
                   secretKeyRef:
                     name: crc-k8s-proxy
                     key: ssl
-            image: quay.io/psav/crc-k8s-proxy:po2
+            image: quay.io/psav/crc-k8s-proxy:po3
             imagePullPolicy: Always
             name: crc-k8s-proxy
             ports:
