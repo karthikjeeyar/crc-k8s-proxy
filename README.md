@@ -20,6 +20,9 @@ For example *host-23r09u-20932r.some.other.domain*.
 Split this like this to get the Keycloak URL. 
 
 *host-23r09u-20932r-auth.some.other.domain*.
+
+Obtain the Kubernetes cluster URL and associated auth token which you want to associate this proxy to.
+
 ```
 K8SURL=<full k8s cluster url>
 TOKEN=<token for k8s auth>
