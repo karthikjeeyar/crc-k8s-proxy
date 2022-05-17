@@ -13,7 +13,13 @@ Get hostname
 ```
 export HOSTNAME=`oc get env env-$NAMESPACE -o json | jq -r '.status.hostname'`
 ```
-Create Env File called envfile. The hostname above will be in the form of <hostname prefix>.<hostname suffix domain>. For example host-23r09u-20932r.some.other.domain. Split this like this to get the Keycloak URL. host-23r09u-20932r-auth.some.other.domain.
+Create Env File called envfile. The hostname above will be in the form of _\<hostname prefix\>.\<hostname suffix domain\>_. 
+
+For example *host-23r09u-20932r.some.other.domain*. 
+
+Split this like this to get the Keycloak URL. 
+
+*host-23r09u-20932r-auth.some.other.domain*.
 ```
 K8SURL=<full k8s cluster url>
 TOKEN=<token for k8s auth>
