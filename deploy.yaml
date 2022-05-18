@@ -13,6 +13,7 @@ objects:
     token: ${TOKEN}
     ssl: "true"
     keycloak: ${KEYCLOAK_URL}
+    proxyssl: ${PROXYSSL}
 - apiVersion: v1
   kind: Service
   metadata:
@@ -99,7 +100,12 @@ objects:
                   secretKeyRef:
                     name: crc-k8s-proxy
                     key: ssl
-            image: quay.io/psav/crc-k8s-proxy:po3
+              - name: HJ_PROXY_SSL
+                valueFrom:
+                  secretKeyRef:
+                    name: crc-k8s-proxy
+                    key: proxyssl
+            image: quay.io/psav/crc-k8s-proxy:po4
             imagePullPolicy: Always
             name: crc-k8s-proxy
             ports:
@@ -131,3 +137,5 @@ parameters:
     required: true
   - name: HOSTNAME
     required: true
+  - name: PROXYSSL
+    value: "true"

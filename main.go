@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -82,6 +83,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	proxyssl, err := strconv.ParseBool(os.Getenv("HJ_PROXY_SSL"))
+	if err != nil {
+		panic(err)
+	}
 
 	rpURL, err := url.Parse(k8sURL)
 	if err != nil {
@@ -92,7 +97,8 @@ func main() {
 	logger.Println("Server is starting...")
 	logger.Printf("Listening on: %s\n", serve)
 	logger.Printf("Forwarding to: %s\n", k8sURL)
-	logger.Printf("SSL mode on: %t\n\n", ssl)
+	logger.Printf("SSL mode on: %t\n", ssl)
+	logger.Printf("Proxy SSL mode on: %t\n\n", proxyssl)
 
 	mangler, err := NewMangler(
 		*rpURL,
@@ -105,9 +111,18 @@ func main() {
 		panic(fmt.Sprintf("Encountered error loading: %s", err))
 	}
 
+	var transport http.RoundTripper
+	if proxyssl {
+		transport = http.DefaultTransport
+	} else {
+		transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+	}
+
 	proxy := httputil.ReverseProxy{
 		Director:  mangler.modifier,
-		Transport: http.DefaultTransport,
+		Transport: transport,
 		ErrorLog:  logger,
 	}
 
