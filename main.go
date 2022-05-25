@@ -62,6 +62,17 @@ func (m *Mangler) modifier(request *http.Request) {
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", m.Config.Bearer))
 }
 
+var logger *log.Logger
+
+func init() {
+	logger = log.New(os.Stdout, "", log.LstdFlags)
+}
+
+func signup(w http.ResponseWriter, r *http.Request) {
+	logger.Println(r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent())
+	w.Write([]byte("{\"status\":{\"ready\":true}}"))
+}
+
 func main() {
 	k8sURL := os.Getenv("HJ_K8S")
 	if k8sURL == "" {
@@ -93,7 +104,6 @@ func main() {
 		panic(err)
 	}
 
-	logger := log.New(os.Stdout, "", log.LstdFlags)
 	logger.Println("Server is starting...")
 	logger.Printf("Listening on: %s\n", serve)
 	logger.Printf("Forwarding to: %s\n", k8sURL)
@@ -126,13 +136,16 @@ func main() {
 		ErrorLog:  logger,
 	}
 
+	http.Handle("/api/k8s/", logging(logger)(&proxy))
+	http.HandleFunc("/api/k8s/signup", signup)
+
 	if ssl {
-		err = http.ListenAndServeTLS(serve, "/tmp/certs/tls.crt", "/tmp/certs/tls.key", &proxy)
+		err = http.ListenAndServeTLS(serve, "/tmp/certs/tls.crt", "/tmp/certs/tls.key", nil)
 		if err != nil {
 			fmt.Printf("%s", err)
 		}
 	} else {
-		err = http.ListenAndServe(serve, logging(logger)(&proxy))
+		err = http.ListenAndServe(serve, nil)
 		if err != nil {
 			fmt.Printf("%s", err)
 		}
