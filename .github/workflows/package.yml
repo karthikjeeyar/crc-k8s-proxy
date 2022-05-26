@@ -10,10 +10,15 @@ jobs:
   testing:
     runs-on: ubuntu-20.04
     steps:
+      - uses: actions/setup-go@v2
+        name: Set up golang 1.17
+        with:
+          go-version: '1.17.7'
       - name: Check out source code
-        uses: actions/checkout@v1
-      - name: Install package and dependencies
-        run: |
-          sudo apt-get install golang-1.17
+        uses: actions/checkout@v2
+      - name: Gen private
+        run: openssl genrsa -out private.pem 2048
+      - name: Gen public
+        run: openssl rsa -in private.pem -outform PEM -pubout -out public.pem
       - name: Run Tests
-        run: go test -v ./pkg/api/v1/...
+        run: go test
