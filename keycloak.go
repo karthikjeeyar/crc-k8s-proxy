@@ -18,6 +18,7 @@ type CRCAuthValidator struct {
 	config    *ValidatorConfig
 	pem       string
 	verifyKey *rsa.PublicKey
+	logger    *log.Logger
 }
 
 type ValidatorConfig struct {
@@ -25,7 +26,7 @@ type ValidatorConfig struct {
 }
 
 func NewCRCAuthValidator(config *ValidatorConfig, logger *log.Logger) (*CRCAuthValidator, error) {
-	validator := &CRCAuthValidator{config: config}
+	validator := &CRCAuthValidator{config: config, logger: logger}
 	if config.KeycloakURL != "" {
 		resp, err := getJWT(config.KeycloakURL)
 		if err != nil {
@@ -43,7 +44,7 @@ func NewCRCAuthValidator(config *ValidatorConfig, logger *log.Logger) (*CRCAuthV
 		return nil, err
 	} else {
 		validator.verifyKey = verifyKey
-		logger.Print("PEM Verified Successfully\n\n")
+		logger.Println("PEM Verified Successfully")
 	}
 
 	return validator, nil
@@ -99,7 +100,7 @@ func (crc *CRCAuthValidator) ProcessRequest(r *http.Request) error {
 	if strings.Contains(r.Header.Get("Authorization"), "Bearer") {
 		return crc.processJWTHeaderRequest(r)
 	} else {
-		fmt.Printf("\n\nCHOSEN BAD\n\n")
+		logger.Printf("bad auth request")
 		return fmt.Errorf("bad auth type")
 	}
 }
