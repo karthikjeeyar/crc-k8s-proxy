@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 func init() {
@@ -27,7 +28,13 @@ type jsonStruct struct {
 	TokensNotBefore int    `json:"tokens-not-before"`
 }
 
-func startKCServer() *httptest.Server {
+type TestSuite struct {
+	suite.Suite
+	kc  *httptest.Server
+	sut *httptest.Server
+}
+
+func (suite *TestSuite) SetupSuite() {
 	keyData, _ := ioutil.ReadFile("public.pem")
 	jsonObj := jsonStruct{
 		PublicKey:       string(keyData),
@@ -42,43 +49,40 @@ func startKCServer() *httptest.Server {
 			w.Write(jsonString)
 		}
 	}))
-	return k8sServer
+	suite.kc = k8sServer
+	os.Setenv("HJ_KEYCLOAK", suite.kc.URL)
+	fmt.Printf("+++%v", os.Getenv("HJ_KEYCLOAK"))
+
+	suite.sut = httptest.NewServer(getMux())
 }
 
-func TestBadAuthK8sPath(t *testing.T) {
-	k8sServer := startKCServer()
-	defer k8sServer.Close()
+func (suite *TestSuite) TestBadAuthK8sPath() {
+	resp, err := http.Get(fmt.Sprintf("%s/k8s/api", suite.sut.URL))
 
-	os.Setenv("HJ_KEYCLOAK", k8sServer.URL)
+	assert.Nil(suite.T(), err, "error was not nil")
+	assert.NotNil(suite.T(), resp, "response was nil")
 
-	server := httptest.NewServer(getMux())
-	defer server.Close()
-
-	resp, err := http.Get(fmt.Sprintf("%s/k8s/api", server.URL))
-
-	assert.Nil(t, err, "error was not nil")
-	assert.NotNil(t, resp, "response was nil")
-
-	assert.Equal(t, 403, resp.StatusCode)
+	assert.Equal(suite.T(), 403, resp.StatusCode)
 }
 
-func TestRegistrationPath(t *testing.T) {
-	k8sServer := startKCServer()
-	defer k8sServer.Close()
+func (suite *TestSuite) TestRegistrationPath() {
+	resp, err := http.Get(fmt.Sprintf("%s/registration/api/v1/signup", suite.sut.URL))
 
-	os.Setenv("HJ_KEYCLOAK", k8sServer.URL)
+	assert.Nil(suite.T(), err, "error was not nil")
+	assert.NotNil(suite.T(), resp, "response was nil")
 
-	server := httptest.NewServer(getMux())
-	defer server.Close()
-
-	resp, err := http.Get(fmt.Sprintf("%s/registration/api/v1/signup", server.URL))
-
-	assert.Nil(t, err, "error was not nil")
-	assert.NotNil(t, resp, "response was nil")
-
-	assert.Equal(t, 200, resp.StatusCode)
+	assert.Equal(suite.T(), 200, resp.StatusCode)
 
 	body, err := ioutil.ReadAll(resp.Body)
-	assert.Nil(t, err, "read error not nil")
-	assert.Equal(t, "{\"status\":{\"ready\":true}}", string(body))
+	assert.Nil(suite.T(), err, "read error not nil")
+	assert.Equal(suite.T(), "{\"status\":{\"ready\":true}}", string(body))
+}
+
+func (suite *TestSuite) TearDownSuite() {
+	suite.kc.Close()
+	suite.sut.Close()
+}
+
+func TestExampleTestSuite(t *testing.T) {
+	suite.Run(t, new(TestSuite))
 }
