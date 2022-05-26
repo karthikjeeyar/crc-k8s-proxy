@@ -94,6 +94,9 @@ func proxyErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
 	if err.Error() == "bad auth error" {
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte("auth was denied by server"))
+	} else {
+		w.WriteHeader(http.StatusBadGateway)
+		w.Write([]byte("unidentified error"))
 	}
 }
 
