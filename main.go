@@ -136,8 +136,8 @@ func main() {
 		ErrorLog:  logger,
 	}
 
-	http.Handle("/api/k8s/", logging(logger)(&proxy))
-	http.HandleFunc("/api/k8s/signup", signup)
+	http.Handle("/", logging(logger)(&proxy))
+	http.HandleFunc("/registration/api/v1/signup", signup)
 
 	if ssl {
 		err = http.ListenAndServeTLS(serve, "/tmp/certs/tls.crt", "/tmp/certs/tls.key", nil)
