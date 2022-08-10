@@ -45,6 +45,7 @@ var authError = "X-Auth-Error"
 
 type roundTripFilter struct {
 	parent http.RoundTripper
+	logger *log.Logger
 }
 
 func (rtf *roundTripFilter) RoundTrip(r *http.Request) (*http.Response, error) {
@@ -53,7 +54,11 @@ func (rtf *roundTripFilter) RoundTrip(r *http.Request) (*http.Response, error) {
 			StatusCode: 403,
 		}, errors.New(strings.Join(err, ","))
 	}
-	return rtf.parent.RoundTrip(r)
+	resp, err := rtf.parent.RoundTrip(r)
+	if resp != nil {
+		logger.Println(r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent(), resp.StatusCode)
+	}
+	return resp, err
 }
 
 func NewSimpleMangler(k8sURL url.URL, logger *log.Logger) (ManglerObject, error) {
@@ -188,11 +193,15 @@ func getMux() *http.ServeMux {
 
 	var transport http.RoundTripper
 	if proxySSL {
-		transport = &roundTripFilter{parent: http.DefaultTransport}
+		transport = &roundTripFilter{parent: http.DefaultTransport, logger: logger}
 	} else {
-		transport = &roundTripFilter{parent: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}}
+		transport = &roundTripFilter{
+			parent: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true},
+			},
+			logger: logger,
+		}
 	}
 
 	proxy := httputil.ReverseProxy{
@@ -204,7 +213,7 @@ func getMux() *http.ServeMux {
 
 	mux := http.NewServeMux()
 
-	mux.Handle("/", logging(logger)(&proxy))
+	mux.Handle("/", &proxy)
 	mux.HandleFunc("/registration/api/v1/signup", signup)
 
 	return mux
