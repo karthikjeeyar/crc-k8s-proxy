@@ -147,6 +147,8 @@ func getMux() *http.ServeMux {
 		mode = "simple"
 	}
 
+	logger.Printf("Mode: %s\n", mode)
+
 	var proxySSL bool
 	proxyString := os.Getenv("HJ_PROXY_SSL")
 	if proxyString == "" {
