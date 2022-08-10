@@ -58,6 +58,9 @@ func (rtf *roundTripFilter) RoundTrip(r *http.Request) (*http.Response, error) {
 	if resp != nil {
 		logger.Println(r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent(), resp.StatusCode)
 	}
+	if err != nil {
+		logger.Println(err)
+	}
 	return resp, err
 }
 
