@@ -78,6 +78,10 @@ func (m *SimpleMangler) modifier(request *http.Request) {
 	request.URL.Host = m.Config.K8SURL.Host
 	request.URL.Scheme = m.Config.K8SURL.Scheme
 	request.Host = m.Config.K8SURL.Host
+	if strings.HasPrefix(request.URL.Path, "/wss") {
+		path := strings.Replace(request.URL.Path, "/wss", "", 1)
+		request.URL.Path = path
+	}
 }
 
 func NewAuthMangler(k8sURL url.URL, logger *log.Logger) (ManglerObject, error) {
