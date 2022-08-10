@@ -31,6 +31,16 @@ type Mangler struct {
 	Log    *log.Logger
 }
 
+type SimpleMangler struct {
+	URL    *url.URL
+	Config *ManglerConfig
+	Log    *log.Logger
+}
+
+type ManglerObject interface {
+	modifier(request *http.Request)
+}
+
 var authError = "X-Auth-Error"
 
 type roundTripFilter struct {
@@ -46,7 +56,33 @@ func (rtf *roundTripFilter) RoundTrip(r *http.Request) (*http.Response, error) {
 	return rtf.parent.RoundTrip(r)
 }
 
-func NewMangler(k8sURL url.URL, token, keycloak string, logger *log.Logger) (*Mangler, error) {
+func NewSimpleMangler(k8sURL url.URL, logger *log.Logger) (ManglerObject, error) {
+	m := &SimpleMangler{
+		Config: &ManglerConfig{
+			K8SURL: k8sURL,
+		},
+		Log: logger,
+	}
+	return m, nil
+}
+
+func (m *SimpleMangler) modifier(request *http.Request) {
+	request.URL.Host = m.Config.K8SURL.Host
+	request.URL.Scheme = m.Config.K8SURL.Scheme
+	request.Host = m.Config.K8SURL.Host
+}
+
+func NewAuthMangler(k8sURL url.URL, logger *log.Logger) (ManglerObject, error) {
+
+	token := os.Getenv("HJ_TOKEN")
+	if token == "" {
+		panic("HJ_TOKEN env var missing")
+	}
+
+	keycloak := os.Getenv("HJ_KEYCLOAK")
+	if keycloak == "" {
+		panic("HJ_KEYCLOAK env var missing")
+	}
 
 	validator, err := NewCRCAuthValidator(&ValidatorConfig{
 		KeycloakURL: keycloak,
@@ -105,14 +141,12 @@ func getMux() *http.ServeMux {
 	if k8sURL == "" {
 		panic("HJ_K8s env var missing")
 	}
-	token := os.Getenv("HJ_TOKEN")
-	if token == "" {
-		panic("HJ_TOKEN env var missing")
+
+	mode := os.Getenv("HJ_MODE")
+	if mode == "" {
+		mode = "simple"
 	}
-	keycloak := os.Getenv("HJ_KEYCLOAK")
-	if keycloak == "" {
-		panic("HJ_KEYCLOAK env var missing")
-	}
+
 	proxyssl, err := strconv.ParseBool(os.Getenv("HJ_PROXY_SSL"))
 	if err != nil {
 		panic(err)
@@ -126,12 +160,19 @@ func getMux() *http.ServeMux {
 	logger.Printf("Forwarding to: %s\n", k8sURL)
 	logger.Printf("Proxy SSL mode on: %t\n", proxyssl)
 
-	mangler, err := NewMangler(
-		*rpURL,
-		token,
-		keycloak,
-		logger,
-	)
+	var mangler ManglerObject
+
+	if mode == "simple" {
+		mangler, err = NewSimpleMangler(
+			*rpURL,
+			logger,
+		)
+	} else {
+		mangler, err = NewAuthMangler(
+			*rpURL,
+			logger,
+		)
+	}
 
 	if err != nil {
 		panic(fmt.Sprintf("encountered error loading: %s", err))

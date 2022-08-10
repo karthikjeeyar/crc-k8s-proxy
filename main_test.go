@@ -13,14 +13,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-func init() {
-	os.Setenv("HJ_PROXY_SSL", "true")
-	os.Setenv("HJ_SSL", "false")
-	os.Setenv("HJ_K8S", "None")
-	os.Setenv("HJ_TOKEN", "None")
-	os.Setenv("HJ_KEYCLOAK", "None")
-}
-
 type jsonStruct struct {
 	PublicKey       string `json:"public_key"`
 	TokenService    string `json:"token-service"`
@@ -28,13 +20,20 @@ type jsonStruct struct {
 	TokensNotBefore int    `json:"tokens-not-before"`
 }
 
-type TestSuite struct {
+type AuthStripTestSuite struct {
 	suite.Suite
 	kc  *httptest.Server
 	sut *httptest.Server
 }
 
-func (suite *TestSuite) SetupSuite() {
+func (suite *AuthStripTestSuite) SetupSuite() {
+	os.Setenv("HJ_PROXY_SSL", "true")
+	os.Setenv("HJ_SSL", "false")
+	os.Setenv("HJ_K8S", "None")
+	os.Setenv("HJ_TOKEN", "testtoken")
+	os.Setenv("HJ_KEYCLOAK", "None")
+	os.Setenv("HJ_MODE", "authstrip")
+
 	keyData, _ := ioutil.ReadFile("public.pem")
 	jsonObj := jsonStruct{
 		PublicKey:       string(keyData),
@@ -56,7 +55,7 @@ func (suite *TestSuite) SetupSuite() {
 	suite.sut = httptest.NewServer(getMux())
 }
 
-func (suite *TestSuite) TestBadAuthK8sPath() {
+func (suite *AuthStripTestSuite) TestBadAuthK8sPath() {
 	resp, err := http.Get(fmt.Sprintf("%s/k8s/api", suite.sut.URL))
 
 	assert.Nil(suite.T(), err, "error was not nil")
@@ -65,7 +64,7 @@ func (suite *TestSuite) TestBadAuthK8sPath() {
 	assert.Equal(suite.T(), 403, resp.StatusCode)
 }
 
-func (suite *TestSuite) TestRegistrationPath() {
+func (suite *AuthStripTestSuite) TestRegistrationPath() {
 	resp, err := http.Get(fmt.Sprintf("%s/registration/api/v1/signup", suite.sut.URL))
 
 	assert.Nil(suite.T(), err, "error was not nil")
@@ -78,11 +77,66 @@ func (suite *TestSuite) TestRegistrationPath() {
 	assert.Equal(suite.T(), "{\"status\":{\"ready\":true}}", string(body))
 }
 
-func (suite *TestSuite) TearDownSuite() {
+func (suite *AuthStripTestSuite) TearDownSuite() {
 	suite.kc.Close()
 	suite.sut.Close()
 }
 
+func TestAuthStripTestSuite(t *testing.T) {
+	suite.Run(t, new(AuthStripTestSuite))
+}
+
+type SimplePassthroughTestSuite struct {
+	suite.Suite
+	k8s *httptest.Server
+	sut *httptest.Server
+}
+
+func (suite *SimplePassthroughTestSuite) SetupSuite() {
+	os.Setenv("HJ_PROXY_SSL", "false")
+	os.Setenv("HJ_SSL", "false")
+	os.Setenv("HJ_TOKEN", "None")
+	os.Setenv("HJ_KEYCLOAK", "None")
+	os.Setenv("HJ_MODE", "simple")
+
+	normalServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
+	suite.k8s = normalServer
+	os.Setenv("HJ_K8S", suite.k8s.URL)
+
+	suite.sut = httptest.NewServer(getMux())
+}
+
+func (suite *SimplePassthroughTestSuite) TestK8sPath() {
+	resp, err := http.Get(fmt.Sprintf("%s/k8s/api", suite.sut.URL))
+
+	assert.Nil(suite.T(), err, "error was not nil")
+	assert.NotNil(suite.T(), resp, "response was nil")
+
+	assert.Equal(suite.T(), 200, resp.StatusCode)
+}
+
+func (suite *SimplePassthroughTestSuite) TestRegistrationPath() {
+	resp, err := http.Get(fmt.Sprintf("%s/registration/api/v1/signup", suite.sut.URL))
+
+	assert.Nil(suite.T(), err, "error was not nil")
+	assert.NotNil(suite.T(), resp, "response was nil")
+
+	assert.Equal(suite.T(), 200, resp.StatusCode)
+
+	body, err := ioutil.ReadAll(resp.Body)
+	assert.Nil(suite.T(), err, "read error not nil")
+	assert.Equal(suite.T(), "{\"status\":{\"ready\":true}}", string(body))
+}
+
+func (suite *SimplePassthroughTestSuite) TearDownSuite() {
+	suite.k8s.Close()
+	suite.sut.Close()
+}
+
 func TestExampleTestSuite(t *testing.T) {
-	suite.Run(t, new(TestSuite))
+	suite.Run(t, new(SimplePassthroughTestSuite))
 }
