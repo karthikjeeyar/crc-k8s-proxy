@@ -147,7 +147,13 @@ func getMux() *http.ServeMux {
 		mode = "simple"
 	}
 
-	proxyssl, err := strconv.ParseBool(os.Getenv("HJ_PROXY_SSL"))
+	var proxySSL bool
+	proxyString := os.Getenv("HJ_PROXY_SSL")
+	if proxyString == "" {
+		proxyString = "true"
+	}
+
+	proxySSL, err := strconv.ParseBool(proxyString)
 	if err != nil {
 		panic(err)
 	}
@@ -158,7 +164,7 @@ func getMux() *http.ServeMux {
 	}
 
 	logger.Printf("Forwarding to: %s\n", k8sURL)
-	logger.Printf("Proxy SSL mode on: %t\n", proxyssl)
+	logger.Printf("Proxy SSL mode on: %t\n", proxySSL)
 
 	var mangler ManglerObject
 
@@ -179,7 +185,7 @@ func getMux() *http.ServeMux {
 	}
 
 	var transport http.RoundTripper
-	if proxyssl {
+	if proxySSL {
 		transport = &roundTripFilter{parent: http.DefaultTransport}
 	} else {
 		transport = &roundTripFilter{parent: &http.Transport{
@@ -203,7 +209,14 @@ func getMux() *http.ServeMux {
 }
 
 func main() {
-	ssl, err := strconv.ParseBool(os.Getenv("HJ_SSL"))
+
+	var ssl bool
+	sslString := os.Getenv("HJ_SSL")
+	if sslString == "" {
+		sslString = "true"
+	}
+
+	ssl, err := strconv.ParseBool(sslString)
 	if err != nil {
 		panic(err)
 	}
