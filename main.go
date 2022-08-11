@@ -82,6 +82,7 @@ func (m *SimpleMangler) modifier(request *http.Request) {
 		path := strings.Replace(request.URL.Path, "/wss/k8s", "", 1)
 		request.URL.Path = path
 	}
+	request.Header.Set("Origin", fmt.Sprintf("%s://%s", m.Config.K8SURL.Scheme, m.Config.K8SURL.Host))
 }
 
 func NewAuthMangler(k8sURL url.URL, logger *log.Logger) (ManglerObject, error) {
