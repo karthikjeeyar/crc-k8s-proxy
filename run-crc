@@ -1,0 +1,8 @@
+
+
+cat envfile
+while ! oc get ns boot > /dev/null 2>&1 ; do sleep 10; echo "Waiting for boot ns"; done     
+
+NS=boot
+oc process -f deploy.yaml -n $NS --param-file=envfile --local | \
+oc apply -f - -n $NS

@@ -21,10 +21,6 @@ objects:
       service.beta.openshift.io/serving-cert-secret-name: crc-k8s-proxy-cert
     name: crc-k8s-proxy
   spec:
-    internalTrafficPolicy: Cluster
-    ipFamilies:
-      - IPv4
-    ipFamilyPolicy: SingleStack
     ports:
       - port: 8000
         protocol: TCP
@@ -77,9 +73,11 @@ objects:
       metadata:
         labels:
           app: crc-k8s-proxy
-      spec:
+      spec: 
         containers:
           - env:
+              - name: HJ_MODE
+                value: complex          
               - name: HJ_K8S
                 valueFrom:
                   secretKeyRef:
@@ -105,7 +103,7 @@ objects:
                   secretKeyRef:
                     name: crc-k8s-proxy
                     key: proxyssl
-            image: quay.io/psav/crc-k8s-proxy:po8
+            image: quay.io/jduimovich0/crc-k8s-proxy
             imagePullPolicy: Always
             name: crc-k8s-proxy
             ports:
@@ -138,4 +136,4 @@ parameters:
   - name: HOSTNAME
     required: true
   - name: PROXYSSL
-    value: "true"
+    value: "false"
