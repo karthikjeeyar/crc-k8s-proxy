@@ -1,7 +1,17 @@
 
 
-cat envfile
 while ! oc get ns boot > /dev/null 2>&1 ; do sleep 10; echo "Waiting for boot ns"; done     
+
+echo "Installing new proxy, updating the TOKEN to oc whoami --show-token"
+ENVFILE=$(mktemp) 
+grep -v TOKEN envfile > $ENVFILE
+cp $ENVFILE envfile 
+rm $ENVFILE
+TOKEN=$(oc whoami --show-token)
+echo "TOKEN=$TOKEN" >>envfile
+echo "Envfile: "
+cat envfile  
+echo 
 
 NS=boot
 oc process -f deploy.yaml -n $NS --param-file=envfile --local | \
