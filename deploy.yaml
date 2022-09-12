@@ -11,7 +11,7 @@ objects:
   stringData:
     k8surl: ${K8SURL}
     token: ${TOKEN}
-    ssl: "true"
+    ssl: ${SSL}
     keycloak: ${KEYCLOAK_URL}
     proxyssl: ${PROXYSSL}
 - apiVersion: v1
@@ -136,4 +136,6 @@ parameters:
   - name: HOSTNAME
     required: true
   - name: PROXYSSL
+    value: "false"
+  - name: SSL
     value: "false"
