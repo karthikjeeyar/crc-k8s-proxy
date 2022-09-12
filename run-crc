@@ -6,3 +6,7 @@ while ! oc get ns boot > /dev/null 2>&1 ; do sleep 10; echo "Waiting for boot ns
 NS=boot
 oc process -f deploy.yaml -n $NS --param-file=envfile --local | \
 oc apply -f - -n $NS
+
+CURRENTPROXY=$(kubectl get pods --selector=app=crc-k8s-proxy -n $NS -o name)
+echo "restaring proxy pod $CURRENTPROXY"
+oc delete $CURRENTPROXY -n $NS
