@@ -138,4 +138,4 @@ parameters:
   - name: PROXYSSL
     value: "false"
   - name: SSL
-    value: "false"
+    value: "true"
