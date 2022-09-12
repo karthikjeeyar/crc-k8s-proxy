@@ -3,3 +3,4 @@ TOKEN=secret-add-bearer-token
 KEYCLOAK_URL=http://env-boot-keycloak.boot.svc:8080/auth/realms/redhat-external
 HOSTNAME=env-boot-local-127-0-0-1.nip.io
 PROXYSSL=false
+SSL=false
